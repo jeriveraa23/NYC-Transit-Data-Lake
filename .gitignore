@@ -1,0 +1,35 @@
+# --- Entorno Virtual ---
+venv/
+venv1/
+env/
+.env
+.venv/
+
+# --- Airflow ---
+# No subimos logs ni bases de datos locales
+logs/
+airflow.db
+airflow-webserver.pid
+standalone_admin_password.txt
+
+# --- Docker ---
+# Si usas volúmenes locales de base de datos
+postgres_data/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# --- VS Code & OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Datos (MUY IMPORTANTE) ---
+# No subas los archivos .parquet pesados al Git
+data/
+*.parquet
+*.csv
