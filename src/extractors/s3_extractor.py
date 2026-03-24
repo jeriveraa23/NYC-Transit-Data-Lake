@@ -7,8 +7,8 @@ class S3Extractor:
         self.bucket_name = bucket_name
         self.s3_client = boto3.client('s3')
 
-    def extract_from_bronze(self, s3_key):
-        """Read a file from bronze layer and bytes return"""
+    def get_object_bytes(self, s3_key):
+        """Read a file from layers and bytes return"""
         try:
             print(f"S3Extractor: Extracting object from {s3_key}")
             response = self.s3_client.get_object(Bucket=self.bucket_name, Key=s3_key)

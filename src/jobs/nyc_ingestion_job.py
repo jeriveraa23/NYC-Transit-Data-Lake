@@ -10,6 +10,8 @@ class NYCTaxiIngestionJob:
         """Pipeline Orchestration: Extract -> Load"""
         content, file_name = self.extractor.download_parquet(year, month)
 
-        self.loader.upload_to_bronze(content, year, month, file_name)
+        s3_key = f"bronze/yellow_taxi/{year}/{month:02d}/{file_name}"
+
+        self.loader.upload_parquet(content, s3_key)
 
         print(f"Job finalized for the period {year}-{month}")
