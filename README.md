@@ -1,8 +1,8 @@
-## 🥈 Capa Plata (Silver Layer) - Especificaciones de Transformación
+## Capa Plata (Silver Layer) - Especificaciones de Transformación
 
 La capa Plata realiza la limpieza técnica y estandarización de los datos crudos provenientes de la capa Bronce. El objetivo es proporcionar un conjunto de datos atómico, limpio y tipado para análisis avanzado y entrenamiento de modelos.
 
-### 🛠️ Diccionario de Datos y Reglas de Transformación
+### Diccionario de Datos y Reglas de Transformación
 
 | Campo | Tipo Destino | Descripción | Regla de Validación / Análisis |
 | :--- | :--- | :--- | :--- |
@@ -26,8 +26,35 @@ La capa Plata realiza la limpieza técnica y estandarización de los datos crudo
 | **congestion_surcharge**| `Decimal(10,2)` | Recargo por zona de congestión. | Solo aplica en zonas específicas de Manhattan. |
 | **airport_fee** | `Decimal(10,2)` | Tarifa de acceso a aeropuertos. | Solo aplica en JFK o LaGuardia. |
 
-### 🔍 Lógica de Limpieza (Data Quality)
+### Lógica de Limpieza (Data Quality)
 Para asegurar la integridad en la Capa Plata, se aplican los siguientes filtros en PySpark:
 1. **Filtro de Tiempo:** Se eliminan viajes con duración negativa o igual a cero segundos.
 2. **Filtro de Negocio:** Se descartan registros con `total_amount` menor o igual a cero.
 3. **Conversión de Unidades:** Los Timestamps se normalizan dividiendo por 1000 los valores de la fuente cruda.
+
+
+## Capa Oro (Gold Layer) - Métricas de Negocio
+
+La capa Oro transforma los datos limpios de la capa Plata en información estratégica. En esta etapa, los datos se agrupan por día y zona para generar indicadores clave de rendimiento (KPIs) que faciliten la toma de decisiones.
+
+### Tabla de Agregación: `taxi_performance_daily`
+
+**Granularidad:** Diaria por Zona de Recogida (`PULocationID`).
+
+| Campo | Tipo | Origen / Lógica | Descripción de Negocio |
+| :--- | :--- | :--- | :--- |
+| **pickup_date** | `Date` | `to_date(tpep_pickup_datetime)` | Fecha del servicio (YYYY-MM-DD). |
+| **PULocationID** | `Integer` | `PULocationID` | ID de la zona donde inició el viaje. |
+| **total_trips** | `Long` | `count(VendorID)` | Volumen total de servicios prestados. |
+| **total_revenue** | `Decimal` | `sum(total_amount)` | Ingresos brutos totales generados. |
+| **avg_revenue** | `Decimal` | `avg(total_amount)` | Ticket promedio por viaje en esa zona. |
+| **total_tips_profit** | `Decimal` | `sum(tip_amount)` | Total de propinas capturadas por sistema. |
+| **tip_efficiency_pct**| `Decimal` | `(sum(tip_amount) / sum(fare_amount)) * 100` | % de propina respecto a la tarifa base. |
+| **avg_distance** | `Decimal` | `avg(trip_distance)` | Distancia promedio recorrida (Millas). |
+| **total_passengers** | `Long` | `sum(passenger_count)` | Total de personas transportadas. |
+| **avg_duration_min** | `Decimal` | `avg(trip_duration_minutes)` | Tiempo promedio de viaje en minutos. |
+
+### Reglas de Negocio (Gold Logic)
+1. **Filtro de Calidad:** Solo se procesan registros donde `is_total_correct = True` para garantizar que las métricas financieras sean exactas.
+2. **Normalización Temporal:** Se eliminan las horas/minutos para agrupar toda la actividad en bloques de 24 horas.
+3. **Optimización de Almacenamiento:** Los resultados se redondean a 2 decimales para mejorar la legibilidad en tableros de visualización.

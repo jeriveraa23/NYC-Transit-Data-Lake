@@ -28,7 +28,7 @@ services:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
       - PYTHONPATH=${PYTHONPATH}:/opt/airflow/src
-      - _PIP_ADDITIONAL_REQUIREMENTS=${_PIP_ADDITIONAL_REQUIREMENTS:-boto3 pandas pyarrow fastparquet requests apache-airflow-providers-amazon}
+      - _PIP_ADDITIONAL_REQUIREMENTS=${_PIP_ADDITIONAL_REQUIREMENTS:-boto3 pandas pyarrow fastparquet requests apache-airflow-providers-amazon pyspark}
     volumes:
       - ./dags:/opt/airflow/dags
       - ./src:/opt/airflow/src
