@@ -82,7 +82,7 @@ class NYCTaxiTransformer:
             F.avg("total_amount").alias("avg_revenue"),
             F.sum("tip_amount").alias("total_tips_profit"),
 
-            (F.sum("tip_ammount") / F.su,("fare_amount") * 100).alias("tip_efficiency_pct"),
+            (F.sum("tip_amount") / F.sum("fare_amount") * 100).alias("tip_efficiency_pct"),
 
             F.avg("trip_distance").alias("avg_distance"),
             F.sum("passenger_count").alias("total_passengers_transported"),
@@ -94,7 +94,7 @@ class NYCTaxiTransformer:
         # Calculing what percentage of the day's data is reliable
         gold_df = gold_df.withColumn(
             "data_trust_score",
-            F.round((1 - (F.col("flagged_incorrect_trips") / F.col("total_trips")) * 100, 2))
+            F.round((1 - (F.col("flagged_incorrect_trips") / F.col("total_trips"))) * 100, 2)
         )
 
         # Final rounding of metrics
