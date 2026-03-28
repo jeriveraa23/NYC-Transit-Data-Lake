@@ -44,8 +44,12 @@ class NYCTaxiTransformer:
         df = df.withColumn("tip_amount", 
                            F.when(F.col("payment_type") == 1, F.col("tip_amount"))
                            .otherwise(F.lit(0.0)))
+        
+        # 6. Calculate trip duration in minutes
+        df = df.withColumn("trip_duration_minutes",
+                        (F.unix_timestamp("tpep_dropoff_datetime") - F.unix_timestamp("tpep_pickup_datetime")) / 60)
 
-        # 6. Total verification
+        # 7. Total verification
         # We calculate he sum of the components
         sum_expression = (
             F.col("fare_amount") + F.col("extra") + F.col("mta_tax") + 
@@ -59,7 +63,7 @@ class NYCTaxiTransformer:
                            F.when(F.col("total_amount") == F.col("calculated_total"), True)
                            .otherwise(False))
 
-        # 7. Cut date
+        # 8. Cut date
         df = df.withColumn("processed_at", F.current_timestamp())
 
         return df

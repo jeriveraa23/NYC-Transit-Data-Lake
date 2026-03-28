@@ -1,7 +1,7 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
-from src.jobs.nyc_ingestion_job import NYCTaxiIngestionJob
+from src.jobs.nyc_taxi_job import NYCTaxiIngestionJob
 
 BUCKET_NAME = "nyc-transit-data-lake"
 

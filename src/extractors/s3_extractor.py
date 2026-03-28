@@ -1,18 +1,31 @@
-import boto3
-import io
-from botocore.exceptions import ClientError
+import os
+from pyspark.sql import SparkSession
+from pyspark.sql.utils import AnalysisException
 
 class S3Extractor:
-    def __init__(self, bucket_name):
+    def __init__(self, spark_session: SparkSession, bucket_name: str):
         self.bucket_name = bucket_name
-        self.s3_client = boto3.client('s3')
+        self.spark       = spark_session
 
-    def get_object_bytes(self, s3_key):
-        """Read a file from layers and bytes return"""
+    def read_parquet(self, s3_key:str):
+        """Reads a parquet file directly from S3 into a Spark DataFrame"""
+
+        s3_path = f"s3a://{self.bucket_name}/{s3_key}"
+
+        print(f"S3Extractor: Trying read data from {s3_path}")
+
         try:
-            print(f"S3Extractor: Extracting object from {s3_key}")
-            response = self.s3_client.get_object(Bucket=self.bucket_name, Key=s3_key)
-            return response['Body'].read()
-        except ClientError as e:
-            print(f"Error reading from S3: {e}")
+            df = self.spark.read.parquet(s3_path)
+
+            if df.isEmpty():
+                print(f"WARNING - S3Extractor: The file in {s3_path} is empty")
+
+            return df
+        
+        except AnalysisException as e:
+            print(f"ERROR - S3Extractor: The file couldn't be found or read in S3. {e}")
             raise
+        except Exception as e:
+            print(f"ERROR - S3Ectractor: Unexpected error connecting to S3. {e}")
+            raise
+        
