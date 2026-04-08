@@ -17,15 +17,15 @@ class S3Extractor:
         try:
             df = self.spark.read.parquet(s3_path)
 
-            if df.isEmpty():
-                print(f"WARNING - S3Extractor: The file in {s3_path} is empty")
+            if df.rdd.isEmpty():
+                print(f"WARNING: Empty file at {s3_path}")
 
             return df
         
         except AnalysisException as e:
-            print(f"ERROR - S3Extractor: The file couldn't be found or read in S3. {e}")
+            print(f"ERROR: File not found or unreadable in S3 -> {e}")
             raise
         except Exception as e:
-            print(f"ERROR - S3Ectractor: Unexpected error connecting to S3. {e}")
+            print(f"ERROR: Unexpected S3 error -> {e}")
             raise
         

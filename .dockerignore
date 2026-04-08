@@ -1,0 +1,12 @@
+logs/
+data/
+*.log
+*.csv
+*.parquet
+.env
+.venv/
+venv/
+__pycache__/
+*.pyc
+.git/
+.gitignore

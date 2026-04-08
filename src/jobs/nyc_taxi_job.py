@@ -1,6 +1,7 @@
 import os
 from pyspark.sql import SparkSession
 import sys
+from pyspark.sql import functions as F
 
 # Import classes
 from extractors.nyc_extractor import NYCTaxiExtractor
@@ -20,13 +21,18 @@ def run_nyc_pipeline(year, month, bucket_name):
         .config("spark.sql.sources.partitionOverwriteMode", "dynamic") \
         .getOrCreate()
     
+    spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
+    
     # Instantiate tools
     web_extractor = NYCTaxiExtractor()
-    s3_extractor  = S3Extractor(bucket_name)
+    s3_extractor = S3Extractor(spark, bucket_name)
     s3_loader     = S3Loader(bucket_name)
     transformer    = NYCTaxiTransformer(spark)
 
-    print(f"Starting full flow for {year}-{month}")
+    year  = int(year)
+    month = int(month)
+
+    print(f"=== STARTING PIPELINE FOR {year}-{month:02d} ===")
 
     try:
         # --- STEP 1: WEB TO S3 BRONZE ---
@@ -44,20 +50,33 @@ def run_nyc_pipeline(year, month, bucket_name):
         # Transform to silver (Clean and type casts)
         silver_df = transformer.transform_to_silver(raw_df)
 
+        silver_df = silver_df.withColumn("year", F.year("tpep_pickup_datetime")) \
+                             .withColumn("month", F.month("tpep_pickup_datetime"))
+        
+        silver_df = silver_df.repartition("year", "month")
+
         # Save directly to silver layer
-        silver_key = f"silver/year={year}/month={month:02d}/yellow_trips_cleaned.parquet"
-        silver_df.write.mode("overwrite").parquet(f"s3a://{bucket_name}/{silver_key}")
+        silver_df.write \
+            .mode("overwrite") \
+            .partitionBy("year", "month") \
+            .parquet(f"s3a://{bucket_name}/silver/")
 
         # --- STEP 3: SILVER TO GOLD ---
         print(f"Transforming gold layer (KPIs and Metrics)")
-        silver_df = s3_extractor.read_parquet(silver_key)
 
         # Transform to gold (Aggregations and trust score)
         gold_df = transformer.transform_to_gold(silver_df)
 
         #Save gold to S3
-        gold_key = f"gold/year={year}/month={month:02d}/performance_metrics.parquet"
-        gold_df.write.mode("overwrite").parquet(f"s3a://{bucket_name}/{gold_key}")
+        gold_df = gold_df.withColumn("year", F.year("pickup_date")) \
+                         .withColumn("month", F.month("pickup_date"))
+        
+        gold_df = gold_df.repartition("year", "month")
+        
+        gold_df.write \
+            .mode("overwrite") \
+            .partitionBy("year", "month") \
+            .parquet(f"s3a://{bucket_name}/gold/")
 
         print(f"Pipeline successfully completed for {year}-{month:02d}")
         gold_df.show(5)

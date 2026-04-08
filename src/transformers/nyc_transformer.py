@@ -10,8 +10,14 @@ class NYCTaxiTransformer:
 
         # 1. Initial cleaning of nulls and basic types (IDs & Flags)
         df = raw_df.withColumn("VendorID", F.col("VendorID").cast(IntegerType())) \
-            .withColumn("tpep_pickup_datetime", (F.col("tpep_pickup_datetime") / 1000).cast(TimestampType())) \
-            .withColumn("tpep_dropoff_datetime", (F.col("tpep_dropoff_datetime") / 1000).cast(TimestampType())) \
+            .withColumn("tpep_pickup_datetime", 
+                F.when(F.col("tpep_pickup_datetime").cast(TimestampType()).isNotNull(), 
+                       F.col("tpep_pickup_datetime").cast(TimestampType()))
+                 .otherwise(None)) \
+            .withColumn("tpep_dropoff_datetime", 
+                F.when(F.col("tpep_dropoff_datetime").cast(TimestampType()).isNotNull(), 
+                       F.col("tpep_dropoff_datetime").cast(TimestampType()))
+                 .otherwise(None)) \
             .withColumn("RatecodeID", F.col("RatecodeID").cast(IntegerType())) \
             .withColumn("PULocationID", F.col("PULocationID").cast(IntegerType())) \
             .withColumn("DOLocationID", F.col("DOLocationID").cast(IntegerType())) \
@@ -86,7 +92,13 @@ class NYCTaxiTransformer:
             F.avg("total_amount").alias("avg_revenue"),
             F.sum("tip_amount").alias("total_tips_profit"),
 
-            (F.sum("tip_amount") / F.sum("fare_amount") * 100).alias("tip_efficiency_pct"),
+            F.round(
+                F.when(
+                    F.sum("fare_amount") > 0,
+                    (F.sum("tip_amount") / F.sum("fare_amount") * 100)
+                ).otherwise(0),
+                2
+            ).alias("tip_efficiency_pct"),
 
             F.avg("trip_distance").alias("avg_distance"),
             F.sum("passenger_count").alias("total_passengers_transported"),

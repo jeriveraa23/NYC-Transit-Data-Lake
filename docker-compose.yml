@@ -14,9 +14,9 @@ services:
       test: ["CMD", "pg_isready", "-U", "airflow"]
       interval: 5s
       retries: 5
-    
+
   airflow-webserver:
-    image: apache/airflow:2.7.1-python3.10
+    build: .
     container_name: airflow-webserver
     restart: always
     depends_on:
@@ -27,8 +27,7 @@ services:
     environment:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
-      - PYTHONPATH=${PYTHONPATH}:/opt/airflow/src
-      - _PIP_ADDITIONAL_REQUIREMENTS=${_PIP_ADDITIONAL_REQUIREMENTS:-boto3 pandas pyarrow fastparquet requests apache-airflow-providers-amazon pyspark}
+      - PYTHONPATH=/opt/airflow/src
     volumes:
       - ./dags:/opt/airflow/dags
       - ./src:/opt/airflow/src
@@ -37,10 +36,11 @@ services:
       - ./logs:/opt/airflow/logs
     ports:
       - "8080:8080"
-    command: bash -c "airflow db init && airflow users create --username admin --firstname Jorge --lastname Rivera --role Admin --email jeriveraa23@hotmail.com --password admin && airflow webserver"
+    command: webserver
+    entrypoint: /opt/airflow/scripts/entrypoint.sh
 
   airflow-scheduler:
-    image: apache/airflow:2.7.1-python3.10
+    build: .
     container_name: airflow-scheduler
     restart: always
     depends_on:
@@ -49,8 +49,7 @@ services:
       - .env
     environment:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-      - PYTHONPATH=${PYTHONPATH}:/opt/airflow/src
-      - _PIP_ADDITIONAL_REQUIREMENTS=${_PIP_ADDITIONAL_REQUIREMENTS:-boto3 pandas pyarrow fastparquet requests apache-airflow-providers-amazon}
+      - PYTHONPATH=/opt/airflow/src
     volumes:
       - ./dags:/opt/airflow/dags
       - ./src:/opt/airflow/src
@@ -58,3 +57,4 @@ services:
       - ./data:/opt/airflow/data
       - ./logs:/opt/airflow/logs
     command: scheduler
+    entrypoint: /opt/airflow/scripts/entrypoint.sh
