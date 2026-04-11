@@ -5,7 +5,7 @@ class NYCTaxiTransformer:
     def __init__(self, spark_session):
         self.spark = spark_session
 
-    def transform_to_silver(self, raw_df):
+    def transform_to_silver(self, raw_df, year, month):
         print("Spark: Performing deep cleaning for silver layer")
 
         # 1. Initial cleaning of nulls and basic types (IDs & Flags)
@@ -71,6 +71,12 @@ class NYCTaxiTransformer:
 
         # 8. Cut date
         df = df.withColumn("processed_at", F.current_timestamp())
+
+        # 9. Filter year and month
+        df = df.filter(
+            (F.year("tpep_pickup_datetime") == year) &
+            (F.month("tpep_pickup_datetime") == month)
+        )
 
         return df
     

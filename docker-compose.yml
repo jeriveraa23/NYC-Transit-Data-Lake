@@ -58,3 +58,6 @@ services:
       - ./logs:/opt/airflow/logs
     command: scheduler
     entrypoint: /opt/airflow/scripts/entrypoint.sh
+
+volumes:
+  postgres_data:

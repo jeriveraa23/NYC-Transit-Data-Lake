@@ -2,6 +2,7 @@ import os
 from pyspark.sql import SparkSession
 import sys
 from pyspark.sql import functions as F
+from datetime import datetime, timedelta
 
 # Import classes
 from extractors.nyc_extractor import NYCTaxiExtractor
@@ -10,6 +11,14 @@ from loaders.s3_loader import S3Loader
 from transformers.nyc_transformer import NYCTaxiTransformer
 
 def run_nyc_pipeline(year, month, bucket_name):
+
+    requested = datetime(int(year), int(month), 1)
+    cutoff = datetime.now() - timedelta(days=90)
+
+    if requested > cutoff:
+        print(f"Skipping {year}-{month:02d}: data not yet available from NYC TLC")
+        return
+
     # Initialize spark
     spark = SparkSession.builder \
         .appName(f"NYC_Taxi_Pipeline_{year}_{month}") \
@@ -48,7 +57,7 @@ def run_nyc_pipeline(year, month, bucket_name):
         raw_df = s3_extractor.read_parquet(bronze_key)
 
         # Transform to silver (Clean and type casts)
-        silver_df = transformer.transform_to_silver(raw_df)
+        silver_df = transformer.transform_to_silver(raw_df, year, month)
 
         silver_df = silver_df.withColumn("year", F.year("tpep_pickup_datetime")) \
                              .withColumn("month", F.month("tpep_pickup_datetime"))
