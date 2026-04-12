@@ -23,7 +23,8 @@ RUN pip install --no-cache-dir \
     pyarrow \
     fastparquet \
     apache-airflow-providers-amazon \
-    requests
+    requests \
+    prophet
 
 COPY --chown=airflow:root dags/ /opt/airflow/dags/
 COPY --chown=airflow:root src/ /opt/airflow/src/
