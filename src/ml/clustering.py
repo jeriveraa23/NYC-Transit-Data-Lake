@@ -9,11 +9,11 @@ class NYCClusterer:
         self.n_clusters = n_clusters
         self.model = None
 
-    def traint(self, features_df:DataFrame):
+    def train(self, features_df:DataFrame):
 
         kmenas = KMeans(
             featuresCol="features",
-            predictionCol="clusters",
+            predictionCol="cluster",
             k=self.n_clusters,
             seed=42,
             maxIter=20
@@ -53,9 +53,9 @@ class NYCClusterer:
         labeled = cluster_stats.withColumn(
             "cluster_label",
             F.when((F.col("revenue_mean") > 20) & (F.col("distance_mean") > 5), "Zona Premium")
-             .when((F.col("trips_mean") > 5000) & (F.col("distance_mean") < 3), "Zona Alta Frecuencia")
-             .when(F.col("tip_mean") > 15, "Zona Alta Propina")
-             .otherwise("Zona Estándar")
+             .when((F.col("trips_mean") > 5000) & (F.col("distance_mean") < 3), "High Frequency Zone")
+             .when(F.col("tip_mean") > 15, "High Tip Zone")
+             .otherwise("Standard Zone")
         )
 
         return clustered_df.join(

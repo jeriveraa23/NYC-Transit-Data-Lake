@@ -5,6 +5,9 @@ USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
     openjdk-11-jre-headless \
     procps \
+    build-essential \
+    gcc \
+    g++ \
     && apt-get autoremove -yqq --purge \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
@@ -24,7 +27,11 @@ RUN pip install --no-cache-dir \
     fastparquet \
     apache-airflow-providers-amazon \
     requests \
-    prophet
+    # ML
+    scikit-learn \
+    prophet \
+    numpy \
+    python-dateutil
 
 COPY --chown=airflow:root dags/ /opt/airflow/dags/
 COPY --chown=airflow:root src/ /opt/airflow/src/

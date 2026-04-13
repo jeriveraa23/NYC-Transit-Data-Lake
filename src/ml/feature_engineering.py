@@ -34,7 +34,7 @@ class NYCFeatureEngineer:
         ])
 
         feature_cols = [
-            "trip_distance", "trip_duration_minutes", "passegner_count",
+            "trip_distance", "trip_duration_minutes", "passenger_count",
             "PULocationID", "DOLocationID", "pickup_hour", "pickup_day_of_week"
         ]
 
