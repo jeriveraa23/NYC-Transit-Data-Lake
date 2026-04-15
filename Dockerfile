@@ -27,6 +27,8 @@ RUN pip install --no-cache-dir \
     fastparquet \
     apache-airflow-providers-amazon \
     requests \
+    s3fs \
+    strawberry-graphql \
     # ML
     scikit-learn \
     prophet \

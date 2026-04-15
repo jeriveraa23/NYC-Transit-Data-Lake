@@ -15,6 +15,9 @@ def run_nyc_pipeline(year, month, bucket_name):
     requested = datetime(int(year), int(month), 1)
     cutoff = datetime.now() - timedelta(days=90)
 
+    year  = int(year)
+    month = int(month)
+
     if requested > cutoff:
         print(f"Skipping {year}-{month:02d}: data not yet available from NYC TLC")
         return
@@ -37,9 +40,6 @@ def run_nyc_pipeline(year, month, bucket_name):
     s3_extractor = S3Extractor(spark, bucket_name)
     s3_loader     = S3Loader(bucket_name)
     transformer    = NYCTaxiTransformer(spark)
-
-    year  = int(year)
-    month = int(month)
 
     print(f"=== STARTING PIPELINE FOR {year}-{month:02d} ===")
 
