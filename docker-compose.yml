@@ -59,5 +59,31 @@ services:
     command: scheduler
     entrypoint: /opt/airflow/scripts/entrypoint.sh
 
+  nyc-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: nyc-api
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app
+    volumes:
+      - ./api:/app/api
+    ports:
+      - "8000:8000"
+  
+  nyc-dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    container_name: nyc-dashboard
+    environment:
+      - REACT_APP_API_URL=http://nyc-api:8000/graphql
+    ports:
+      - "3000:3000"
+    depends_on:
+      - nyc-api
+
 volumes:
   postgres_data:

@@ -1,5 +1,5 @@
 import pandas as pd
-import s3f3
+import s3fs
 from typing import Optional, Dict, List
 
 class S3Service:
@@ -8,15 +8,14 @@ class S3Service:
         self.fs = s3fs.S3FileSystem()
 
     def _build_path(self, prefix: str, partitions: Optional[Dict[str, int]] = None) -> str:
-        path = f"s3://{self.bucket}/{prefix}"
+        path = f"s3://{self.bucket}/{prefix}/"
 
         if partitions:
             for key, value in partitions.items():
-                if isinstance(value, int) and key == "month":
+                if key == "month" and isinstance(value, int):
                     value = f"{value:02d}"
+                path += f"{key}={value}/"
 
-                    path += f"{key}={value}/"
-        
         return path
     
     def read_parquet(self, prefix: str, partitions: Optional[Dict[str, int]] = None, columns: Optional[List[str]] = None) -> pd.DataFrame:
