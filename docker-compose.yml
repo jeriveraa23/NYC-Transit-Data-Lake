@@ -79,7 +79,7 @@ services:
       dockerfile: Dockerfile
     container_name: nyc-dashboard
     environment:
-      - REACT_APP_API_URL=http://nyc-api:8000/graphql
+      - VITE_API_URL=http://localhost:8000/graphql
     ports:
       - "3000:3000"
     depends_on:

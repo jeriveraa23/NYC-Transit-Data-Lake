@@ -1,5 +1,3 @@
-import os
-from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -11,16 +9,7 @@ from ml.classification import NYCClassifier
 from ml.clustering import NYCClusterer
 from ml.forecasting import NYCForecaster
 
-def run_ml_pipeline(year, month, bucket_name):
-
-    spark = SparkSession.builder \
-        .appName(f"NYC_ML_Pipeline_{year}_{month}") \
-        .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.12.262") \
-        .config("spark.hadoop.fs.s3a.access.key", os.getenv("AWS_ACCESS_KEY_ID")) \
-        .config("spark.hadoop.fs.s3a.secret.key", os.getenv("AWS_SECRET_ACCESS_KEY")) \
-        .config("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com") \
-        .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
-        .getOrCreate()
+def run_ml_pipeline(spark, year, month, bucket_name):
     
     year  = int(year)
     month = int(month)
@@ -132,12 +121,3 @@ def run_ml_pipeline(year, month, bucket_name):
             train_gold_df.unpersist()
         if full_gold_df is not None:
             full_gold_df.unpersist()
-        print("Closing Spark session ML")
-        spark.stop()
-
-if __name__ == "__main__":
-    import sys
-    BUCKET = "nyc-transit-data-lake"
-    YEAR   = int(sys.argv[1]) if len(sys.argv) > 1 else 2023
-    MONTH  = int(sys.argv[2]) if len(sys.argv) > 2 else 1
-    run_ml_pipeline(YEAR, MONTH, BUCKET)

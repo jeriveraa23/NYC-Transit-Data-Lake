@@ -8,12 +8,12 @@ class S3Service:
         self.fs = s3fs.S3FileSystem()
 
     def _build_path(self, prefix: str, partitions: Optional[Dict[str, int]] = None) -> str:
-        path = f"s3://{self.bucket}/{prefix}/"
+        path = f"{self.bucket}/{prefix}/"
 
         if partitions:
             for key, value in partitions.items():
                 if key == "month" and isinstance(value, int):
-                    value = f"{value:02d}"
+                    value = str(value)
                 path += f"{key}={value}/"
 
         return path

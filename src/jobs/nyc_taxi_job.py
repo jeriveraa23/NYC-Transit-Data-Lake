@@ -1,6 +1,4 @@
-import os
 from pyspark.sql import SparkSession
-import sys
 from pyspark.sql import functions as F
 from datetime import datetime, timedelta
 
@@ -10,7 +8,7 @@ from extractors.s3_extractor import S3Extractor
 from loaders.s3_loader import S3Loader
 from transformers.nyc_transformer import NYCTaxiTransformer
 
-def run_nyc_pipeline(year, month, bucket_name):
+def run_nyc_pipeline(spark, year, month, bucket_name):
 
     requested = datetime(int(year), int(month), 1)
     cutoff = datetime.now() - timedelta(days=90)
@@ -21,17 +19,6 @@ def run_nyc_pipeline(year, month, bucket_name):
     if requested > cutoff:
         print(f"Skipping {year}-{month:02d}: data not yet available from NYC TLC")
         return
-
-    # Initialize spark
-    spark = SparkSession.builder \
-        .appName(f"NYC_Taxi_Pipeline_{year}_{month}") \
-        .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.12.262") \
-        .config("spark.hadoop.fs.s3a.access.key", os.getenv("AWS_ACCESS_KEY_ID")) \
-        .config("spark.hadoop.fs.s3a.secret.key", os.getenv("AWS_SECRET_ACCESS_KEY")) \
-        .config("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com") \
-        .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
-        .config("spark.sql.sources.partitionOverwriteMode", "dynamic") \
-        .getOrCreate()
     
     spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
     
@@ -92,20 +79,3 @@ def run_nyc_pipeline(year, month, bucket_name):
     except Exception as e:
         print(f" Critical error in job {str(e)}")
         raise
-    finally:
-        print(f"Closing spark session")
-        spark.stop()
-
-if __name__ == "__main__":
-    BUCKET = "nyc-transit-data-lake"
-    
-
-    if len(sys.argv) == 3:
-        YEAR  = int(sys.argv[1])
-        MONTH = int(sys.argv[2])
-    else:
-
-        YEAR  = 2023
-        MONTH = 1
-    
-    run_nyc_pipeline(YEAR, MONTH, BUCKET)
