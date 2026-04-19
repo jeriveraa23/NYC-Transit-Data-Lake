@@ -44,9 +44,14 @@ class NYCForecaster:
         print(f"[Forecaster] Forecast generated for {self.forecast_days} days.")
         return result
     
-    def save_forecast(self, forecast_df:pd.DataFrame, spark, bucket_name: str):
-        output_path =f"s3a://{bucket_name}/ml/forecasts/"
+    def save_forecast(self, forecast_df:pd.DataFrame, spark, bucket_name: str, year: int, month: int):
+        output_path = f"s3a://{bucket_name}/ml/forecasts/year={year}/month={month:02d}/"
 
+        forecast_df = forecast_df.copy()
+        forecast_df["ds"] = forecast_df["ds"].astype(str)
+
+        forecast_df = forecast_df.rename(columns=str)
+        forecast_df.iteritems = forecast_df.items
         spark_df = spark.createDataFrame(forecast_df)
 
         spark_df.write \

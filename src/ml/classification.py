@@ -1,5 +1,6 @@
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql import functions as F
+from pyspark.ml.functions import vector_to_array
 from pyspark.ml.classification import RandomForestClassifier
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 
@@ -11,16 +12,26 @@ class NYCClassifier:
 
     def train(self, features_df: DataFrame):
 
+        features_df = features_df.limit(100000)
+
         train_df, test_df = features_df.randomSplit([0.8, 0.2], seed=42)
+
+        train_df = train_df.cache()
+        train_df.count()
 
         rf = RandomForestClassifier(
             featuresCol="features",
             labelCol="label",
-            numTrees=100,
-            maxDepth=10,
+            numTrees=10,     
+            maxDepth=4,
+            maxBins=32,
+            subsamplingRate=0.5,
             seed=42
         )
 
+
+        train_df = train_df.cache()
+        train_df.count()
         self.model = rf.fit(train_df)
 
         predictions = self.model.transform(test_df)
@@ -28,14 +39,14 @@ class NYCClassifier:
         acc_evaluator = MulticlassClassificationEvaluator(
             labelCol="label",
             predictionCol="prediction",
-            metricName="accuary"
+            metricName="accuracy"
         )
         accuary = acc_evaluator.evaluate(predictions)
 
         f1_evaluator = MulticlassClassificationEvaluator(
             labelCol="label",
             predictionCol="prediction",
-            metricName="f1"
+            metricName="accuracy"
         )
 
         f1 = f1_evaluator.evaluate(predictions)
@@ -55,10 +66,14 @@ class NYCClassifier:
         extract_max_prob = F.udf(lambda v: float(max(v)), "double")
 
         return predictions.withColumn(
-            "prediction_confidence", extract_max_prob(F.col("probability"))
+            "prediction_confidence",
+            F.array_max(vector_to_array("probability"))
         ).select(
-            "tpep_pickup_datetime", "PULocationID",
-            "tip_label", "prediction", "prediction_confidence"
+            "tpep_pickup_datetime",
+            "PULocationID",
+            "tip_label",
+            "prediction",
+            "prediction_confidence"
         )
      
     def save_predictions(self, predictions_df: DataFrame, bucket_name: str, year: int, month: int):

@@ -11,7 +11,7 @@ class NYCClusterer:
 
     def train(self, features_df:DataFrame):
 
-        kmenas = KMeans(
+        kmeans = KMeans(
             featuresCol="features",
             predictionCol="cluster",
             k=self.n_clusters,
@@ -19,7 +19,7 @@ class NYCClusterer:
             maxIter=20
         )
 
-        self.model = kmenas.fit(features_df)
+        self.model = kmeans.fit(features_df)
 
         predictions = self.model.transform(features_df)
         evaluator = ClusteringEvaluator(
@@ -47,12 +47,12 @@ class NYCClusterer:
             F.avg("avg_revenue").alias("revenue_mean"),
             F.avg("avg_distance").alias("distance_mean"),
             F.avg("total_trips").alias("trips_mean"),
-            F.avg("avg_tip_efficiency").alias("trip_mean")
+            F.avg("avg_tip_efficiency").alias("tip_mean")
         )
 
         labeled = cluster_stats.withColumn(
             "cluster_label",
-            F.when((F.col("revenue_mean") > 20) & (F.col("distance_mean") > 5), "Zona Premium")
+            F.when((F.col("revenue_mean") > 20) & (F.col("distance_mean") > 5), "Premium Zone")
              .when((F.col("trips_mean") > 5000) & (F.col("distance_mean") < 3), "High Frequency Zone")
              .when(F.col("tip_mean") > 15, "High Tip Zone")
              .otherwise("Standard Zone")
@@ -62,9 +62,9 @@ class NYCClusterer:
             labeled.select("cluster", "cluster_label"), on="cluster", how="left"
         )
     
-    def save_clusters(self, clustered_df: DataFrame, bucket_name: str):
+    def save_clusters(self, clustered_df: DataFrame, bucket_name: str, year: int, month: int ):
 
-        output_path = f"s3a://{bucket_name}/ml/clusters"
+        output_path = f"s3a://{bucket_name}/ml/clusters/year={year}/month={month:02d}/"
 
         clustered_df.write \
             .mode("overwrite") \

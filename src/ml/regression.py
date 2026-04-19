@@ -11,16 +11,22 @@ class NYCRegressor:
 
     def train(self, features_df: DataFrame):
 
+        features_df = features_df.limit(100000)
+
         train_df, test_df = features_df.randomSplit([0.8, 0.2],seed=42)
 
         rf = RandomForestRegressor(
             featuresCol="features",
             labelCol="total_amount",
-            numTrees=100,
-            maxDepth=10,
+            numTrees=10,     
+            maxDepth=4,        
+            maxBins=32,
+            subsamplingRate=0.5,
             seed=42
         )
 
+        train_df = train_df.cache()
+        train_df.count()
         self.model = rf.fit(train_df)
 
         predictions = self.model.transform(test_df)
@@ -37,7 +43,7 @@ class NYCRegressor:
     def predict(self, features_df: DataFrame) -> DataFrame:
 
         if self.model is None:
-            raise ValueError("The model hasn't benn trained. first call train()")
+            raise ValueError("The model hasn't been trained. first call train()")
         
         predictions = self.model.transform(features_df)
 

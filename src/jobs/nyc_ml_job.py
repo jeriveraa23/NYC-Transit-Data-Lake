@@ -24,9 +24,9 @@ def run_ml_pipeline(spark, year, month, bucket_name):
     try:
         feature_engineer = NYCFeatureEngineer(spark)
 
-        # TWO-YEAR WINDOW
+        # ONE-YEAR WINDOW
         current_month = datetime(year, month, 1)
-        cutoff_date   = current_month - relativedelta(years=2)
+        cutoff_date = current_month - relativedelta(months=6)
 
         print(f"Training Window: {cutoff_date.strftime('%Y-%m')} → {year}-{month:02d}")
 
@@ -34,9 +34,16 @@ def run_ml_pipeline(spark, year, month, bucket_name):
         print(f"\nReading silver from S3...")
         full_silver_df = spark.read.parquet(f"s3a://{bucket_name}/silver/")
 
-        # Training: Last 2 years without the current month
+
+        full_silver_df = full_silver_df.withColumn(
+            "year", F.year("tpep_pickup_datetime")
+        ).withColumn(
+            "month", F.month("tpep_pickup_datetime")
+        )
+
+        # Training: Last 6 months without the current month
         train_silver_df = full_silver_df.filter(
-            (F.col("tpep_pickup_datetime") >= F.lit(cutoff_date.strftime("%Y-%m-%d"))) &
+            (F.col("tpep_pickup_datetime") >= F.lit(cutoff_date)) &
             ~(
                 (F.year("tpep_pickup_datetime") == year) &
                 (F.month("tpep_pickup_datetime") == month)
@@ -45,27 +52,20 @@ def run_ml_pipeline(spark, year, month, bucket_name):
 
         # Prediction: current month only
         predict_silver_df = full_silver_df.filter(
-            (F.year("tpep_pickup_datetime") == year) &
-            (F.month("tpep_pickup_datetime") == month)
+            (F.col("year") == year) &
+            (F.col("month") == month)
         )
 
-        train_silver_df.cache()
-        predict_silver_df.cache()
+        train_silver_df = train_silver_df.limit(200000)
+        predict_silver_df = predict_silver_df.limit(100000)
 
-        print(f"Training records {train_silver_df.count():,}")
-        print(f"Records to predict (current month): {predict_silver_df.count():,}")
+        train_silver_df = train_silver_df.cache()
+        predict_silver_df = predict_silver_df.cache()
 
-        # READ ALL OF GOLD
-        print("\nReading gold from S3...")
-        full_gold_df = spark.read.parquet(f"s3a://{bucket_name}/gold/")
+        train_silver_df.count()
+        predict_silver_df.count()
 
-        # Gold last 2 years including current month -> for clustering
-        train_gold_df = full_gold_df.filter(
-            F.col("pickup_date") >= F.lit(cutoff_date.strftime("%Y-%m-%d"))
-        )
-
-        train_gold_df.cache()
-        full_gold_df.cache()
+        print(f"Training Window: {cutoff_date.strftime('%Y-%m')} → {year}-{month:02d}")
 
         # --- 1. REGRESSION ---
         print("\n[1/4] Regression: prediction of total_amount")
@@ -87,6 +87,20 @@ def run_ml_pipeline(spark, year, month, bucket_name):
         classification_predictions = classifier.predict(cls_predict_features)
         classifier.save_predictions(classification_predictions, bucket_name, year, month)
 
+        train_silver_df.unpersist()
+        predict_silver_df.unpersist()
+        train_silver_df   = None
+        predict_silver_df = None
+
+        print("\nReading gold from S3...")
+        full_gold_df = spark.read.parquet(f"s3a://{bucket_name}/gold/")
+
+        train_gold_df = full_gold_df.filter(
+            F.col("pickup_date") >= F.lit(cutoff_date.strftime("%Y-%m-%d"))
+        )
+
+        train_gold_df.cache()
+
         # --- 3. CLUSTERING ---
         print("\n[3/4] Clustering: zone segmentation")
         clustering_features = feature_engineer.build_clustering_features(train_gold_df)
@@ -95,7 +109,10 @@ def run_ml_pipeline(spark, year, month, bucket_name):
         clusterer.train(clustering_features)
         clustered_df = clusterer.predict(clustering_features)
         labeled_df   = clusterer.label_clusters(clustered_df)
-        clusterer.save_clusters(labeled_df, bucket_name)
+        clusterer.save_clusters(labeled_df, bucket_name, year, month)
+
+        train_gold_df.unpersist()
+        train_gold_df = None
 
         # --- 4. FORECASTING ---
         print("\n[4/4] Forecasting: future demand prediction")
@@ -104,7 +121,7 @@ def run_ml_pipeline(spark, year, month, bucket_name):
         forecaster = NYCForecaster(forecast_days=30)
         forecaster.train(forecasting_pandas_df)
         forecast_df = forecaster.predict()
-        forecaster.save_forecast(forecast_df, spark, bucket_name)
+        forecaster.save_forecast(forecast_df, spark, bucket_name, year, month)
 
         print(f"\n=== ML PIPELINE COMPLETED FOR {year}-{month:02d} ===")
     
@@ -113,11 +130,15 @@ def run_ml_pipeline(spark, year, month, bucket_name):
         raise
 
     finally:
-        if train_silver_df is not None:
-            train_silver_df.unpersist()
-        if predict_silver_df is not None:
-            predict_silver_df.unpersist()
-        if train_gold_df is not None:
-            train_gold_df.unpersist()
-        if full_gold_df is not None:
-            full_gold_df.unpersist()
+        for df, name in [
+            (train_silver_df, "train_silver_df"),
+            (predict_silver_df, "predict_silver_df"),
+            (train_gold_df, "train_gold_df"),
+            (full_gold_df, "full_gold_df"),
+        ]:
+            if df is not None:
+                try:
+                    df.unpersist()
+                    print(f"Unpersisted {name}")
+                except Exception as e:
+                    print(f"Warning: could not unpersist {name}: {e}")
