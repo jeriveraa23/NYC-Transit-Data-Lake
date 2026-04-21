@@ -1,14 +1,14 @@
 import pandas as pd
-from datetime import date
 
 def resolve_forecast(s3_service) -> dict:
     df = s3_service.read_parquet("ml/forecasts")
     df["ds"] = pd.to_datetime(df["ds"])
     df = df.sort_values("ds")
 
-    today        = pd.Timestamp(date.today())
-    historical_df = df[df["ds"] <= today]
-    forecast_df   = df[df["ds"] >  today]
+    max_date      = df["ds"].max()
+    cutoff        = max_date - pd.Timedelta(days=29)
+    historical_df = df[df["ds"] < cutoff]
+    forecast_df   = df[df["ds"] >= cutoff]
 
     def to_points(rows):
         return [

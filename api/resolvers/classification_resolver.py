@@ -1,7 +1,7 @@
 def resolve_tip_distribution(year: int, month: int, s3_service) -> dict:
     df = s3_service.read_parquet(
         "ml/predictions/classification",
-        partitions={"year": year, "month": month},
+        partitions={"year": year, "month": f"{month:02d}"},
         columns=["tip_label"]
     )
 
