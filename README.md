@@ -123,6 +123,13 @@ docker-compose up --build
 - Trigger manually with the year and month to process
 
 ---
+### S3 Data Lake
+
+<img width="1615" height="434" alt="S3 Data Lake" src="https://github.com/user-attachments/assets/9c15b281-9724-4929-a9ec-c340850533fc" />
+
+---
+
+---
 
 ### Repository Structure
 
