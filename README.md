@@ -29,6 +29,7 @@ S3 is not a container — it is an external AWS service used as the Data Lake, s
 ---
 
 ### Pipeline Architecture — Medallion
+<img width="1876" height="790" alt="AD" src="https://github.com/user-attachments/assets/2b0458e9-27d3-472f-bebc-02c7867aeb2a" />
 
 
 ---
@@ -66,9 +67,13 @@ All models use a **6-month sliding training window** — recent enough to reflec
 
 <!-- IMAGE: Screenshot of Monthly Analytics dashboard -->
 > *Monthly Analytics dashboard screenshot goes here*
+<img width="1633" height="987" alt="Monthly Analytics" src="https://github.com/user-attachments/assets/cf6f5700-4ffa-44e0-bf61-4881120faec3" />
+
 
 <!-- IMAGE: Screenshot of Demand Forecast page -->
 > *Demand Forecast page screenshot goes here*
+<img width="1743" height="987" alt="Demand Forecast" src="https://github.com/user-attachments/assets/5b9ae6c4-fc22-4909-9d62-c2bfe506df95" />
+
 
 The dashboard has two pages:
 
